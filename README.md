@@ -83,6 +83,12 @@ make docker-config   # YAML 语法
 
 `backend/.python-version` 锁定 **3.11**（pyenv / asdf / uv 自动识别）。与 `backend/pyproject.toml` 的 `requires-python = ">=3.11,<3.12"` 一致。
 
+### IDE 配置（PyCharm / VS Code）
+
+- **Python 解释器**: 选 `backend/.venv/bin/python`（**不要**选系统 Python 或根目录 `.venv`）
+- **测试运行器**: 优先用 `make test`（会自动 cd backend）；若 IDE 直接调 pytest，把 Working Directory 设为 `backend/`
+- **uv 用户**: 在 `backend/` 目录跑 `uv sync`（或 `uv pip install -e ".[dev]"`）会创建/使用 `backend/.venv`；**不要**从仓库根跑 `uv run`，否则 uv 会新建根 `.venv` 没用项目依赖
+
 ## 许可证
 
 内部使用
