@@ -52,6 +52,33 @@ docs/
 - 架构决策：见 `docs/adr/`
 - 领域术语表：见 `docs/CONTEXT.md`（Phase 0a 填充）
 
+## 本地开发（不用 Docker）
+
+```bash
+# 1. 装依赖
+make install
+
+# 2. 配 .env（一次性，已通过 wizard 引导）
+bash scripts/setup.sh
+
+# 3. 起 Postgres + Redis（任选其一：docker run / 本地服务 / brew）
+#    wizard Stage 1 提供 docker run 命令
+
+# 4. 三个 terminal 分别跑（或用 make dev 一起起）
+make dev-backend     # uvicorn --reload :8000
+make dev-worker      # arq worker（Phase 2+）
+make dev-frontend    # Vite :5173
+
+# 5. 跑测试
+make test            # pytest -v
+
+# 6. lint + 校验
+make lint
+make docker-config   # YAML 语法
+```
+
+`make help` 列全部 target。`make verify` = lint + test + compose 校验，是 CI 入口。
+
 ## 许可证
 
 内部使用
