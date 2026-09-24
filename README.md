@@ -37,8 +37,11 @@ docker-compose exec backend python -m app.fixtures.bootstrap --all
 ```
 backend/       FastAPI + LangGraph + Arq worker
 frontend/      Vite + React SPA
-tests/         backend pytest + frontend Playwright
-docs/          CONTEXT.md + ADR/
+tests/         （Phase 1+ 填充）
+docs/
+├── CONTEXT.md       # Phase 0a 从 plan 导入
+├── agents/          # Claude Code agent 配置（已就绪）
+└── adr/             # Phase 0a 批量生成 10 个 ADR
 ```
 
 ## 详细文档
@@ -46,6 +49,7 @@ docs/          CONTEXT.md + ADR/
 - 实施计划：`/Users/cai.he/.claude/plans/deep-research-humming-gray.md`
 - 运维手册：见 `docs/runbook.md`（Phase 8 收尾时生成）
 - 架构决策：见 `docs/adr/`
+- 领域术语表：见 `docs/CONTEXT.md`（Phase 0a 填充）
 
 ## 许可证
 
