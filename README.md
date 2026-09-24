@@ -15,11 +15,10 @@
 ### 步骤
 
 ```bash
-# 1. 复制环境变量模板
-cp .env.example .env
-# 编辑 .env，填入连接串与 API key
+# 1. 跑一次性 wizard 抓取 key + 启动本地 infra
+bash scripts/setup.sh
 
-# 2. 启动应用栈
+# 2. 启动应用栈（仅 backend / worker / frontend；infra 已外部就绪）
 docker-compose up -d
 
 # 3. 等后端 /readyz 就绪
@@ -31,6 +30,8 @@ docker-compose exec backend python -m app.fixtures.bootstrap --all
 # 5. 登录种子账号（密码在 fixtures bootstrap 输出中）
 # 访问前端 http://localhost:5173
 ```
+
+> **关于 `scripts/setup.sh`**：交互式 wizard，引导你逐项抓 Langfuse / Anthropic / Tavily 等 key 并写入 `.env`，还提供 Postgres + Redis 的本地 `docker run` 命令。幂等 — 跑多次也安全（已存在的值不会被覆盖）。详见脚本内 stage 说明。
 
 ### 目录导览
 
