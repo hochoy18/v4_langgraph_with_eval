@@ -21,8 +21,8 @@ PYPROJECT     := $(BACKEND_DIR)/pyproject.toml
 # Python（默认用 python3；CI 中可改）
 PYTHON        ?= python3
 
-# 后端 .env 路径（dev 默认从仓库根读；可被覆盖）
-ENV_FILE      ?= .env
+# 后端 .env 路径（在 backend/ 下；可被覆盖）
+ENV_FILE      ?= backend/.env
 
 # 颜色（仅 TTY）
 BOLD := \033[1m

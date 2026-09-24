@@ -1,12 +1,13 @@
 # 仅打包应用。基础设施（Postgres / Redis / Milvus / Langfuse）已在外部运行，
-# 通过 .env 中的连接串接入。
+# 通过 backend/.env 中的连接串接入。frontend 不需要 .env（Vite 开发时
+# 通过 vite.config.ts 代理 /api 到 backend）。
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: dr_backend
-    env_file: .env
+    env_file: ./backend/.env
     ports:
       - "8000:8000"
     volumes:
@@ -24,7 +25,7 @@ services:
       dockerfile: Dockerfile
     container_name: dr_worker
     command: ["arq", "app.workers.research_worker.WorkerSettings"]
-    env_file: .env
+    env_file: ./backend/.env
     volumes:
       - ./backend/app:/app/app
     depends_on:
@@ -36,7 +37,6 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: dr_frontend
-    env_file: .env
     ports:
       - "5173:5173"
     volumes:

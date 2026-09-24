@@ -45,12 +45,20 @@ Single-context — 仓库根的 `CONTEXT.md` + `docs/adr/`。完整约定见 `do
 ## 常用命令
 
 ```bash
-# 后端本地开发
-cd backend && uv pip install --system && uvicorn app.main:app --reload
+# 一站式
+make help               # 看全部 target
 
-# 跑 fixtures（测试用户 / Langfuse prompts / ground truth）
-python -m app.fixtures.bootstrap --all
+# 后端
+make dev-backend        # uvicorn :8000 --reload
+make test               # pytest（backend/tests/）
+make dev-worker         # arq worker
 
-# 跑端到端 smoke（前提：外部 infra 可达）
+# 前端
+make dev-frontend       # Vite :5173
+
+# 配置
+bash scripts/setup.sh   # 一次性 wizard → 写 backend/.env
+
+# 端到端 smoke（前提：外部 infra 可达 + backend/.env 配齐）
 # 见 plan 文档"验证"小节
 ```
