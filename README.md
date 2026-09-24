@@ -79,6 +79,10 @@ make docker-config   # YAML 语法
 
 `make help` 列全部 target。`make verify` = lint + test + compose 校验，是 CI 入口。
 
+### Python 版本
+
+`backend/.python-version` 锁定 **3.11**（pyenv / asdf / uv 自动识别）。与 `backend/pyproject.toml` 的 `requires-python = ">=3.11,<3.12"` 一致。
+
 ## 许可证
 
 内部使用
