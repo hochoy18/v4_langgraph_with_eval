@@ -3,16 +3,17 @@
 启动时挂载：
   - CORS（dev 默认 localhost:5173）
   - 结构化 JSON 日志
-  - /healthz（liveness）
-  - /readyz（DB / Redis / Langfuse / search provider 可达性）
+  - /healthz（liveness — 进程在跑）
+  - /readyz（readiness — DB / Redis / Langfuse 可达性）
   - API 路由（占位，Phase 1+ 接入）
 
-Phase 0 仅交付 /healthz + /readyz，其余路由在后续 Phase 接入。
+Phase 0 (S0-T1) 仅交付 /healthz + /readyz，其余路由在后续 Phase 接入。
 """
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -60,46 +61,77 @@ async def healthz() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/readyz", tags=["health"])
-async def readyz(response: Response) -> dict:
-    """Readiness — DB / Redis / Langfuse / 选定 search provider 是否可达。
-
-    任何依赖不可达时返回 503。Phase 0 暂只检查 DB 与 Redis；Langfuse 与
-    search provider 检查在 Phase 4 / Phase 0a 后接入。
-    """
-    checks: dict[str, str] = {}
-    overall_ok = True
-
-    # ---- Postgres（Phase 1 后才有 app/core/db.py） ----
+async def _check_postgres() -> str:
+    """Probe Postgres。Phase 1 之前 app.core.db 不存在，跳过。"""
     try:
-        from sqlalchemy import text
+        from sqlalchemy import text  # noqa: F401
 
-        from app.core.db import async_session  # noqa: F401
+        from app.core.db import async_session  # type: ignore
 
-        async with async_session() as session:
-            await session.execute(text("SELECT 1"))
-        checks["postgres"] = "ok"
+        async with async_session() as session:  # type: ignore
+            await session.execute(text("SELECT 1"))  # type: ignore
+        return "ok"
     except ImportError:
-        checks["postgres"] = "skip (Phase 1 not yet implemented)"
+        return "skip (Phase 1 not yet implemented)"
     except Exception as e:
-        checks["postgres"] = f"fail: {type(e).__name__}"
-        overall_ok = False
+        return f"fail: {type(e).__name__}"
 
-    # ---- Redis ----
+
+async def _check_redis() -> str:
+    """Probe Redis via PING。"""
     try:
         import redis.asyncio as redis_async
 
         r = redis_async.from_url(settings.redis_url)
-        await r.ping()
-        await r.aclose()
-        checks["redis"] = "ok"
+        try:
+            await r.ping()
+        finally:
+            await r.aclose()
+        return "ok"
     except Exception as e:
-        checks["redis"] = f"fail: {type(e).__name__}"
-        overall_ok = False
+        return f"fail: {type(e).__name__}"
+
+
+async def _check_langfuse() -> str:
+    """Probe Langfuse public health endpoint."""
+    if not settings.langfuse_host:
+        return "skip (LANGFUSE_HOST not configured)"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{settings.langfuse_host.rstrip('/')}/api/public/health")
+            if resp.status_code == 200:
+                return "ok"
+            return f"fail: http {resp.status_code}"
+    except Exception as e:
+        return f"fail: {type(e).__name__}"
+
+
+@app.get("/readyz", tags=["health"])
+async def readyz(response: Response) -> dict:
+    """Readiness — Postgres / Redis / Langfuse 可达性。
+
+    任何依赖 fail（不是 skip）→ 503 + 整体 degraded。
+    全部 ok 或 skip → 200 + ok。
+    """
+    pg = await _check_postgres()
+    rd = await _check_redis()
+    lf = await _check_langfuse()
+
+    checks = {"postgres": pg, "redis": rd, "langfuse": lf}
+
+    # "fail:" 前缀视为失败；"ok" 与 "skip" 视为通过
+    def is_fail(status: str) -> bool:
+        return status.startswith("fail")
+
+    overall_ok = not any(is_fail(c) for c in checks.values())
 
     if not overall_ok:
         response.status_code = 503
-    return {"status": "ok" if overall_ok else "degraded", "checks": checks}
+
+    return {
+        "status": "ok" if overall_ok else "degraded",
+        "checks": checks,
+    }
 
 
 # ----- 路由占位（后续 Phase 接入） -----
