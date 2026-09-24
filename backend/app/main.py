@@ -17,7 +17,7 @@ import httpx
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
+from app.core.config import get_settings, settings
 from app.core.logging import configure_logging, get_logger
 
 logger = get_logger(__name__)
@@ -27,10 +27,11 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """启动 / 关闭钩子。"""
     configure_logging()
+    s = get_settings()
     logger.info(
         "app.startup",
-        env=settings.app_env,
-        port=settings.app_port,
+        env=s.app_env,
+        port=s.app_port,
     )
     yield
     logger.info("app.shutdown")
@@ -43,9 +44,10 @@ app = FastAPI(
 )
 
 # CORS（dev 默认放行 localhost:5173）
+_cors_settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=_cors_settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,10 +81,11 @@ async def _check_postgres() -> str:
 
 async def _check_redis() -> str:
     """Probe Redis via PING。"""
+    s = get_settings()
     try:
         import redis.asyncio as redis_async
 
-        r = redis_async.from_url(settings.redis_url)
+        r = redis_async.from_url(s.redis_url)
         try:
             await r.ping()
         finally:
@@ -94,11 +97,12 @@ async def _check_redis() -> str:
 
 async def _check_langfuse() -> str:
     """Probe Langfuse public health endpoint."""
-    if not settings.langfuse_host:
+    s = get_settings()
+    if not s.langfuse_host:
         return "skip (LANGFUSE_HOST not configured)"
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{settings.langfuse_host.rstrip('/')}/api/public/health")
+            resp = await client.get(f"{s.langfuse_host.rstrip('/')}/api/public/health")
             if resp.status_code == 200:
                 return "ok"
             return f"fail: http {resp.status_code}"

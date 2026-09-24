@@ -41,8 +41,14 @@ def test_readyz_returns_200_when_all_infra_ok(client, monkeypatch):
 
 def test_readyz_returns_503_when_redis_fails(client):
     """Redis unreachable → 503 + status='degraded'."""
-    # redis.asyncio.from_url raises ConnectionError on bad URL by default
-    resp = client.get("/readyz")  # settings.redis_url defaults to localhost:6379/0
+    # Mock redis to raise ConnectionError
+    fake_redis = AsyncMock()
+    fake_redis.ping = AsyncMock(side_effect=ConnectionError("simulated redis down"))
+    fake_redis.aclose = AsyncMock(return_value=None)
+
+    with patch("redis.asyncio.from_url", return_value=fake_redis):
+        resp = client.get("/readyz")
+
     assert resp.status_code == 503
     body = resp.json()
     assert body["status"] == "degraded"

@@ -245,16 +245,28 @@ write_env TAVILY_API_KEY "$TAVILY_API_KEY"
 
 # ── Stage 5: OpenAI key (optional) ───────────────────────────────────────
 stage "OpenAI: API key (optional)"
-say "Only needed if you want to A/B test against GPT models (Phase 7)."
-say "Skip this stage if you only plan to use Anthropic."
-if confirm "Skip OpenAI?"; then
-  note "Skipped — OpenAI key not required for v1 default flow."
+say "OpenAI is the DEFAULT LLM provider (D5/ADR 0011)."
+say "Pick whichever provider you have:"
+say "  • OpenAI official — platform.openai.com"
+say "  • DeepSeek (国内可用, 价格低) — platform.deepseek.com (OPENAI_BASE_URL 自动填好)"
+say "  • Moonshot — platform.moonshot.cn"
+say "  • Local vLLM — http://localhost:8000/v1"
+say "  • Skip — use Anthropic only (需改 MODEL_<NODE>=anthropic:...)"
+if confirm "Skip OpenAI / OpenAI-compatible?"; then
+  note "Skipped — 默认 LLM 改为 Anthropic（手动改 MODEL_<NODE> 即可）。"
 else
-  open_url "https://platform.openai.com/api-keys"
-  step "Sign in, then Dashboard → API keys → Create new secret key."
-  step "Copy the key (starts sk-)."
+  say "Open the matching platform, sign in, create an API key, copy it."
+  step "Paste your key below. Use AskSecret input — key is hidden."
   ask_secret OPENAI_API_KEY "Paste OPENAI_API_KEY:"
+  open_url "https://platform.openai.com/docs/api-reference"
+  say "Common base_url values:"
+  say "  • https://api.openai.com/v1 (OpenAI official, default for OpenAI)"
+  say "  • https://api.deepseek.com (DeepSeek)"
+  say "  • https://api.moonshot.cn/v1 (Moonshot)"
+  say "  • http://localhost:8000/v1 (local vLLM)"
+  ask OPENAI_BASE_URL "Paste OPENAI_BASE_URL  (default https://api.deepseek.com):"
   write_env OPENAI_API_KEY "$OPENAI_API_KEY"
+  write_env OPENAI_BASE_URL "$OPENAI_BASE_URL"
 fi
 
 # ── Stage 6: 阿里云百炼 MCP (optional) ──────────────────────────────────

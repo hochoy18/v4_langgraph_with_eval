@@ -15,7 +15,7 @@ from typing import Literal
 
 from langchain.chat_models import init_chat_model
 
-from app.core.config import settings
+from app.core.config import get_settings
 
 NodeName = Literal[
     "main_plan",
@@ -31,19 +31,24 @@ NodeName = Literal[
 ]
 
 
-# 节点 → MODEL_<NODE> 配置值
-_NODE_TO_CONFIG: dict[NodeName, str] = {
-    "main_plan": settings.model_main_plan,
-    "research_dispatch": settings.model_research_dispatch,
-    "research_coverage_check": settings.model_research_coverage_check,
-    "sq_extract": settings.model_sq_extract,
-    "sq_reflect": settings.model_sq_reflect,
-    "write_outline": settings.model_write_outline,
-    "write_sections": settings.model_write_sections,
-    "write_revise": settings.model_write_revise,
-    "write_summarize": settings.model_write_summarize,
-    "judge_citation": settings.model_judge_citation,
-}
+def _node_to_config(node: NodeName) -> str:
+    """读最新 settings 取该节点的 model 配置字符串。
+
+    在函数内读 settings 而非模块级常量，便于测试 + 运行时热重载。
+    """
+    s = get_settings()
+    return {
+        "main_plan": s.model_main_plan,
+        "research_dispatch": s.model_research_dispatch,
+        "research_coverage_check": s.model_research_coverage_check,
+        "sq_extract": s.model_sq_extract,
+        "sq_reflect": s.model_sq_reflect,
+        "write_outline": s.model_write_outline,
+        "write_sections": s.model_write_sections,
+        "write_revise": s.model_write_revise,
+        "write_summarize": s.model_write_summarize,
+        "judge_citation": s.model_judge_citation,
+    }[node]
 
 
 def _parse_model_string(s: str) -> tuple[str, str]:
@@ -56,8 +61,16 @@ def _parse_model_string(s: str) -> tuple[str, str]:
 
 @lru_cache(maxsize=32)
 def _build_chat_model(node: NodeName):
-    provider, model = _parse_model_string(_NODE_TO_CONFIG[node])
-    return init_chat_model(model=model, model_provider=provider)
+    provider, model = _parse_model_string(_node_to_config(node))
+    s = get_settings()
+    kwargs: dict[str, object] = {"model": model, "model_provider": provider}
+
+    # OpenAI-compatible providers (DeepSeek / Moonshot / vLLM / Ollama 等)
+    # 走 base_url 切换端点。base_url 只对 openai provider 生效。
+    if provider == "openai" and s.openai_base_url:
+        kwargs["base_url"] = s.openai_base_url
+
+    return init_chat_model(**kwargs)
 
 
 def get_model(node: NodeName, *, temperature: float | None = None):

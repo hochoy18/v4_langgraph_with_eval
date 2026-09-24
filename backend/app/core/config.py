@@ -38,17 +38,20 @@ class Settings(BaseSettings):
     # ---- LLM ----
     anthropic_api_key: str = ""
     openai_api_key: str = ""
-    # 节点级模型（Phase 7 A/B 用）
-    model_main_plan: str = "anthropic:claude-sonnet-5"
-    model_research_dispatch: str = "anthropic:claude-haiku-4-5"
-    model_research_coverage_check: str = "anthropic:claude-sonnet-5"
-    model_sq_extract: str = "anthropic:claude-sonnet-5"
-    model_sq_reflect: str = "anthropic:claude-sonnet-5"
-    model_write_outline: str = "anthropic:claude-haiku-4-5"
-    model_write_sections: str = "anthropic:claude-sonnet-5"
-    model_write_revise: str = "anthropic:claude-sonnet-5"
-    model_write_summarize: str = "anthropic:claude-haiku-4-5"
-    model_judge_citation: str = "anthropic:claude-sonnet-5"
+    # OpenAI-compatible provider base URL. 默认 DeepSeek (国内可用、价格低)；
+    # 官方 OpenAI 改成 https://api.openai.com/v1 即可。
+    openai_base_url: str = "https://api.deepseek.com"
+    # 节点级模型（Phase 7 A/B 用）；默认 OpenAI，可随时改 MODEL_<NODE>=anthropic:... 切回
+    model_main_plan: str = "openai:gpt-4.1"
+    model_research_dispatch: str = "openai:gpt-4.1-mini"
+    model_research_coverage_check: str = "openai:gpt-4.1"
+    model_sq_extract: str = "openai:gpt-4.1"
+    model_sq_reflect: str = "openai:gpt-4.1-mini"
+    model_write_outline: str = "openai:gpt-4.1-mini"
+    model_write_sections: str = "openai:gpt-4.1"
+    model_write_revise: str = "openai:gpt-4.1"
+    model_write_summarize: str = "openai:gpt-4.1-mini"
+    model_judge_citation: str = "openai:gpt-4.1"
 
     # ---- 检索 ----
     search_provider: Literal["tavily", "bailian_mcp"] = "tavily"
