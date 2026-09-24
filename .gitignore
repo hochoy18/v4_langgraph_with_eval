@@ -30,3 +30,6 @@ htmlcov/
 # Build
 build/
 *.whl
+
+# Claude Code transient files
+.claude/settings.local.json.tmp.*
